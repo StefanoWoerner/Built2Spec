@@ -28,6 +28,8 @@ public class ButtonReceiver : InteractionReceiver
     //public FileSurfaceObserver fso;
     public GameObject mapObject;
     public GameObject miniMapObject;
+    public GameObject spatialMappingObject;
+    public RenderDepthDifference rdd;
     public string defaultMeshFileName;
 
     private bool buildMinimap;
@@ -36,6 +38,7 @@ public class ButtonReceiver : InteractionReceiver
     {
         txt = textObjectState.GetComponentInChildren<TextMesh>();
         miniMapObject.SetActive(false);
+        rdd.enabled = false;
     }
 
     void Update()
@@ -68,6 +71,7 @@ public class ButtonReceiver : InteractionReceiver
             case "ToolbarButton2":
                 Debug.Log("Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
                 txt.text = "Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
+                rdd.enabled = false;
 
                 foreach (Transform child in mapObject.transform)
                 {
@@ -85,11 +89,20 @@ public class ButtonReceiver : InteractionReceiver
                 break;
 
             case "ToolbarButton3":
+                rdd.enabled = false;
                 miniMapObject.SetActive(true);
-                txt.text = "Pinch the minimap with both hands to transform the mesh." + defaultMeshFileName;
+                SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
+                txt.text = "Pinch the minimap with both hands to transform the mesh.";
                 break;
 
             case "ToolbarButton4":
+                rdd.enabled = true;
+                miniMapObject.SetActive(false);
+                SetLayerRecursively(mapObject, LayerMask.NameToLayer("ReferenceLayer"));
+                txt.text = "";
+                break;
+
+            case "ToolbarButton5":
                 Debug.Log("Loading...");
 #if !UNITY_EDITOR && UNITY_WSA
                 //Task<Task> task = Task<Task>.Factory.StartNew(
@@ -116,6 +129,16 @@ public class ButtonReceiver : InteractionReceiver
 
             default:
                 break;
+        }
+    }
+
+    private static void SetLayerRecursively(GameObject go, int newLayer)
+    {
+        go.layer = newLayer;
+
+        foreach (Transform child in go.transform)
+        {
+            SetLayerRecursively(child.gameObject, newLayer);
         }
     }
 

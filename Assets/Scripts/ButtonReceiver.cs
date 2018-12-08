@@ -8,6 +8,7 @@ using HoloToolkit.Unity.Receivers;
 using HoloToolkit.Unity.InputModule;
 using HoloToolkit.Unity.SpatialMapping;
 using System.IO;
+using HoloToolkit.Unity.UX;
 
 #if WINDOWS_UWP
 
@@ -25,43 +26,67 @@ public class ButtonReceiver : InteractionReceiver
     public GameObject textObjectState;
     private TextMesh txt;
     //public FileSurfaceObserver fso;
-    public string meshFileName;
     public GameObject mapObject;
+    public GameObject miniMapObject;
+    public string defaultMeshFileName;
+
+    private bool buildMinimap;
 
     void Start()
     {
         txt = textObjectState.GetComponentInChildren<TextMesh>();
+        miniMapObject.SetActive(false);
+    }
+
+    void Update()
+    {
+        if (buildMinimap)
+        {
+            foreach (Transform child in mapObject.transform)
+            {
+                Transform miniChild = Instantiate(child, miniMapObject.transform);
+                miniChild.gameObject.AddComponent<BoxCollider>();
+            }
+
+            buildMinimap = false;
+        }
     }
 
     protected override void InputDown(GameObject obj, InputEventData eventData)
     {
         Debug.Log(obj.name + " : InputDown");
-        txt.text = obj.name + " : InputDown";
 
         switch (obj.name)
         {
             case "ToolbarButton1":
-                Debug.Log("Saving...");
-                //MeshSaver.Save(meshFileName, SpatialMappingManager.Instance.GetMeshFilters());
-                ObjSaver.Save(meshFileName, SpatialMappingManager.Instance.GetMeshFilters());
-                txt.text = "Mesh saved to file 1";
+                Debug.Log("Saving spatial mapping...");
+                txt.text = "Saving spatial mapping...";
+                ObjSaver.Save(defaultMeshFileName, SpatialMappingManager.Instance.GetMeshFilters());
+                txt.text = "Mesh saved to " + defaultMeshFileName;
                 break;
 
             case "ToolbarButton2":
-                Debug.Log("Loading...");
-                Debug.Log(Path.Combine(ObjSaver.MeshFolderName, meshFileName + ".obj"));
-                txt.text = "1: " + Path.Combine(ObjSaver.MeshFolderName, meshFileName + ".obj");
-                Material material2 = Resources.Load("defaultMat", typeof(Material)) as Material;
-                OBJLoader.LoadOBJFile(Path.Combine(ObjSaver.MeshFolderName, meshFileName + ".obj"), material2, mapObject);
-                txt.text = "2: " + Path.Combine(ObjSaver.MeshFolderName, meshFileName + ".obj");
-                //int larifari = 0;
-                //foreach (Transform child in go2.transform)
-                //{
-                //    MeshRenderer meshr = child.gameObject.GetComponent<MeshRenderer>();
-                //    meshr.material = material2;
-                //    larifari++;
-                //}
-                //txt.text = "Number: " + larifari;
+                Debug.Log("Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
+                txt.text = "Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
+
+                foreach (Transform child in mapObject.transform)
+                {
+                    Destroy(child.gameObject);
+                }
+                foreach (Transform child in miniMapObject.transform)
+                {
+                    Destroy(child.gameObject);
+                }
+
+                Material material = Resources.Load("defaultMat", typeof(Material)) as Material;
+                OBJLoader.LoadOBJFile(Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"), material, mapObject);
+                buildMinimap = true;
+                txt.text = "Mesh loaded from " + defaultMeshFileName;
+                break;
+
+            case "ToolbarButton3":
+                miniMapObject.SetActive(true);
+                txt.text = "Pinch the minimap with both hands to transform the mesh." + defaultMeshFileName;
                 break;
 
             case "ToolbarButton4":

@@ -9,6 +9,7 @@ using HoloToolkit.Unity.InputModule;
 using HoloToolkit.Unity.SpatialMapping;
 using System.IO;
 using HoloToolkit.Unity.UX;
+using HoloToolkit.Unity.InputModule.Utilities.Interactions;
 
 #if WINDOWS_UWP
 
@@ -34,25 +35,33 @@ public class ButtonReceiver : InteractionReceiver
     public string defaultMeshFileName;
     private SolverHandler sh;
     private SolverRadialView srv;
+    private TwoHandManipulatable thm;
+    private GameObject tbButton_3_1_1;
+    private GameObject tbButton_3_1_2;
 
     private bool buildMinimap;
 
     private bool save;
     private string saveFolderName;
     private string saveFileDisplayName;
-    Stream saveStream;
+    private Stream saveStream;
     private bool load;
     private string loadFolderName;
     private string loadFileDisplayName;
-    Stream loadStream;
+    private Stream loadStream;
 
     void Start()
     {
         txt = textObjectState.GetComponentInChildren<TextMesh>();
-        miniMapObject.SetActive(false);
         rdd.enabled = false;
         sh = toolbarObject.GetComponent<SolverHandler>();
         srv = toolbarObject.GetComponent<SolverRadialView>();
+        thm = miniMapObject.GetComponent<TwoHandManipulatable>();
+        tbButton_3_1_1 = interactables.Find(x => x.name == "ToolbarButton3-1-1");
+        tbButton_3_1_2 = interactables.Find(x => x.name == "ToolbarButton3-1-2");
+        miniMapObject.SetActive(false);
+        tbButton_3_1_1.SetActive(false);
+        tbButton_3_1_2.SetActive(false);
     }
 
     void Update()
@@ -209,15 +218,35 @@ public class ButtonReceiver : InteractionReceiver
                 break;
 
             case "ToolbarButton3":
+                Debug.Log("Entering manipulation mode...");
                 rdd.enabled = false;
-                miniMapObject.SetActive(true);
                 SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
+                miniMapObject.SetActive(true);
+                tbButton_3_1_1.SetActive(true);
+                tbButton_3_1_2.SetActive(false);
+                thm.ManipulationMode = ManipulationMode.MoveAndRotate;
                 txt.text = "Pinch the minimap with both hands to transform the mesh.";
+                break;
+
+            case "ToolbarButton3-1-1":
+                Debug.Log("Turning scaling on...");
+                tbButton_3_1_1.SetActive(false);
+                tbButton_3_1_2.SetActive(true);
+                thm.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
+                break;
+
+            case "ToolbarButton3-1-2":
+                Debug.Log("Turning scaling off...");
+                tbButton_3_1_2.SetActive(false);
+                tbButton_3_1_1.SetActive(true);
+                thm.ManipulationMode = ManipulationMode.MoveAndRotate;
                 break;
 
             case "ToolbarButton4":
                 rdd.enabled = true;
                 miniMapObject.SetActive(false);
+                tbButton_3_1_1.SetActive(false);
+                tbButton_3_1_2.SetActive(false);
                 SetLayerRecursively(mapObject, LayerMask.NameToLayer("ReferenceLayer"));
                 txt.text = "";
                 break;

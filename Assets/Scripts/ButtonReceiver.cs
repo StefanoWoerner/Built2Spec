@@ -34,8 +34,11 @@ public class ButtonReceiver : InteractionReceiver
 
     private bool buildMinimap;
 
+    private bool save;
+    private string saveFolderName;
+    private string saveFileDisplayName;
+    Stream saveStream;
     private bool load;
-    private bool loadCancelled;
     private string loadFolderName;
     private string loadFileDisplayName;
     Stream loadStream;
@@ -63,8 +66,7 @@ public class ButtonReceiver : InteractionReceiver
         if(load)
         {
             load = false;
-
-            txt.text = "Hello";
+            
             foreach (Transform child in mapObject.transform)
             {
                 Destroy(child.gameObject);
@@ -90,6 +92,14 @@ public class ButtonReceiver : InteractionReceiver
             buildMinimap = true;
             txt.text = "Mesh \"" + loadFileDisplayName + "\" loaded.";
         }
+
+        if (save)
+        {
+            save = false;
+
+            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName, saveStream);
+            txt.text = "Spatial mapping saved to " + saveFileDisplayName;
+        }
     }
 
     protected override void InputDown(GameObject obj, InputEventData eventData)
@@ -99,9 +109,8 @@ public class ButtonReceiver : InteractionReceiver
         switch (obj.name)
         {
             case "ToolbarButton1":
-                bool saveCancelled = false;
-                string saveFolderName = ObjSaver.MeshFolderName;
-                string saveFileDisplayName = defaultMeshFileName;
+                saveFolderName = ObjSaver.MeshFolderName;
+                saveFileDisplayName = defaultMeshFileName;
 
 #if !UNITY_EDITOR && UNITY_WSA
                 UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
@@ -112,6 +121,8 @@ public class ButtonReceiver : InteractionReceiver
                     savePicker.SuggestedFileName = "SpatialMappingMesh";
 
                     StorageFile file = await savePicker.PickSaveFileAsync();
+                    IRandomAccessStream randomAccessStream = await file.OpenAsync(FileAccessMode.ReadWrite);
+                    saveStream = randomAccessStream.AsStreamForWrite();
                     UnityEngine.WSA.Application.InvokeOnAppThread(() =>
                     {
                         if (file != null)
@@ -121,13 +132,13 @@ public class ButtonReceiver : InteractionReceiver
                             saveFolderName = Path.GetDirectoryName(file.Path);
                             saveFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
                             //txt.text = "Saving to " + file.Path + ", " + saveFolderName + ", " + saveFileDisplayName;
+                            save = true;
                         }
                         else
                         {
                             // The picker was dismissed with no selected file
                             Debug.Log("File picker operation cancelled");
                             txt.text = "File picker operation cancelled";
-                            saveCancelled = true;
                         }
 
                     }, true);
@@ -135,21 +146,14 @@ public class ButtonReceiver : InteractionReceiver
                 }, true);
 #else
                 Debug.Log("Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
-                //txt.text = "Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
+                txt.text = "Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
+                save = true;
 #endif
-                if (saveCancelled)
-                {
-                    break;
-                }
-
-                ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName);
-                txt.text = "Spatial mapping saved to " + saveFileDisplayName;
                 break;
 
             case "ToolbarButton2":
                 rdd.enabled = false;
-
-                loadCancelled = false;
+                
                 loadFolderName = ObjSaver.MeshFolderName;
                 loadFileDisplayName = defaultMeshFileName;
 
@@ -180,7 +184,6 @@ public class ButtonReceiver : InteractionReceiver
                             // The picker was dismissed with no selected file
                             Debug.Log("File picker operation cancelled");
                             txt.text = "File picker operation cancelled";
-                            loadCancelled = true;
                         }
         
                     }, true);

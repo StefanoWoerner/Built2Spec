@@ -69,7 +69,7 @@ public static class ObjSaver
         return Path.Combine(folderName, fileName + fileExtension);
     }
 
-    public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters, String folderName = null)
+    public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters, String folderName = null, Stream stream = null)
     {
         if (string.IsNullOrEmpty(fileName))
         {
@@ -86,7 +86,7 @@ public static class ObjSaver
         Debug.Log(String.Format("Saving mesh file: {0}", Path.Combine(folderName, fileName + fileExtension)));
 
         vertexCount = 0;
-        using (StreamWriter outputFile = new StreamWriter(OpenFileForWrite(folderName, fileName + fileExtension)))
+        using (StreamWriter outputFile = new StreamWriter(stream ?? OpenFileForWrite(folderName, fileName + fileExtension)))
         {
 
             int o = 0;

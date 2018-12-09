@@ -69,7 +69,7 @@ public static class ObjSaver
         return Path.Combine(folderName, fileName + fileExtension);
     }
 
-    public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters)
+    public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters, String folderName = null)
     {
         if (string.IsNullOrEmpty(fileName))
         {
@@ -82,7 +82,7 @@ public static class ObjSaver
         }
 
         // Create the mesh file.
-        String folderName = MeshFolderName;
+        folderName = folderName ?? MeshFolderName;
         Debug.Log(String.Format("Saving mesh file: {0}", Path.Combine(folderName, fileName + fileExtension)));
 
         vertexCount = 0;

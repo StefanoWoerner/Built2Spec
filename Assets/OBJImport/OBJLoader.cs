@@ -160,7 +160,7 @@ public class OBJLoader
         return matlList.ToArray();
     }
 
-    public static GameObject LoadOBJFile(string fn, Material defaultMaterial, GameObject parentObject = null)
+    public static GameObject LoadOBJFile(string fn, Material defaultMaterial, GameObject parentObject = null, string[] lines = null)
     {
 
         string meshName = Path.GetFileNameWithoutExtension(fn);
@@ -187,7 +187,7 @@ public class OBJLoader
         //save this info for later
         FileInfo OBJFileInfo = new FileInfo(fn);
          
-        foreach (string ln in ReadAllLines(fn))
+        foreach (string ln in (lines ?? ReadAllLines(fn)))
         {
             if (ln.Length > 0 && ln[0] != '#')
             {

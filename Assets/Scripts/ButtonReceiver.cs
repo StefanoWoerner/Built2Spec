@@ -30,7 +30,10 @@ public class ButtonReceiver : InteractionReceiver
     public GameObject miniMapObject;
     public GameObject spatialMappingObject;
     public RenderDepthDifference rdd;
+    public GameObject toolbarObject;
     public string defaultMeshFileName;
+    private SolverHandler sh;
+    private SolverRadialView srv;
 
     private bool buildMinimap;
 
@@ -48,6 +51,8 @@ public class ButtonReceiver : InteractionReceiver
         txt = textObjectState.GetComponentInChildren<TextMesh>();
         miniMapObject.SetActive(false);
         rdd.enabled = false;
+        sh = toolbarObject.GetComponent<SolverHandler>();
+        srv = toolbarObject.GetComponent<SolverRadialView>();
     }
 
     void Update()
@@ -76,6 +81,9 @@ public class ButtonReceiver : InteractionReceiver
                 Destroy(child.gameObject);
             }
 
+            Material material = Resources.Load("defaultMat", typeof(Material)) as Material;
+
+#if !UNITY_EDITOR && UNITY_WSA
             List<string> lines = new List<string>();
 
             using (StreamReader r = new StreamReader(loadStream))
@@ -86,9 +94,10 @@ public class ButtonReceiver : InteractionReceiver
                     lines.Add(line);
                 }
             }
-
-            Material material = Resources.Load("defaultMat", typeof(Material)) as Material;
             OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject, lines.ToArray());
+#else
+            OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject);
+#endif
             buildMinimap = true;
             txt.text = "Mesh \"" + loadFileDisplayName + "\" loaded.";
         }
@@ -96,8 +105,11 @@ public class ButtonReceiver : InteractionReceiver
         if (save)
         {
             save = false;
-
+#if !UNITY_EDITOR && UNITY_WSA
             ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName, saveStream);
+#else
+            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName);
+#endif
             txt.text = "Spatial mapping saved to " + saveFileDisplayName;
         }
     }
@@ -211,28 +223,10 @@ public class ButtonReceiver : InteractionReceiver
                 break;
 
             case "ToolbarButton5":
-                Debug.Log("Loading...");
-#if !UNITY_EDITOR && UNITY_WSA
-                //Task<Task> task = Task<Task>.Factory.StartNew(
-                //        async () =>
-                //        {
-                //            FileOpenPicker openPicker = new FileOpenPicker();
-                //            openPicker.ViewMode = PickerViewMode.Thumbnail;
-                //            openPicker.SuggestedStartLocation = PickerLocationId.Objects3D;
-                //            openPicker.FileTypeFilter.Add(".obj");
-                //            StorageFile file = await openPicker.PickSingleFileAsync();
-                //            //StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderName);
-                //            //StorageFile file = await folder.GetFileAsync(fileName);
-                //            IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
-                //            stream = randomAccessStream.AsStreamForRead();
-                //        });
-                //task.Wait();
-                //task.Result.Wait();
-                //GameObject go3 = OBJLoader.LoadOBJFile(OpenFileAsync());
-                OpenFileAsync();
-#else
-                Debug.Log("Hello");
-#endif
+                Debug.Log("Changing UI lock...");
+                sh.enabled = !sh.enabled;
+                srv.enabled = !srv.enabled;
+                txt.text = sh.enabled ? "UI unlocked" : "UI locked";
                 break;
 
             default:
@@ -249,40 +243,5 @@ public class ButtonReceiver : InteractionReceiver
             SetLayerRecursively(child.gameObject, newLayer);
         }
     }
-
-#if !UNITY_EDITOR && UNITY_WSA
-    private async void OpenFileAsync()
-    {
-        UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
-        {
-            FileOpenPicker openPicker = new FileOpenPicker();
-            openPicker.ViewMode = PickerViewMode.Thumbnail;
-            openPicker.SuggestedStartLocation = PickerLocationId.Objects3D;
-            openPicker.FileTypeFilter.Add(".obj");
-
-            StorageFile file = await openPicker.PickSingleFileAsync();
-            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-            {
-                if (file != null)
-                {
-                    // Application now has read/write access to the picked file
-                    Debug.Log("Picked file: " + file.DisplayName + ", Path: " + file.Path);
-                    txt.text = "Picked file: " + file.DisplayName + ", Path: " + file.Path;
-                }
-                else
-                {
-                    // The picker was dismissed with no selected file
-                    Debug.Log("File picker operation cancelled");
-                    txt.text = "File picker operation cancelled";
-                }
-
-
-            }, true);
-
-
-        }, false);
-
-    }
-#endif
 
 }

@@ -10,6 +10,7 @@ using HoloToolkit.Unity.SpatialMapping;
 using System.IO;
 using HoloToolkit.Unity.UX;
 using HoloToolkit.Unity.InputModule.Utilities.Interactions;
+using HoloToolkit.UX.Dialog;
 
 #if WINDOWS_UWP
 
@@ -24,7 +25,7 @@ using System.Threading.Tasks;
 
 public class ButtonReceiver : InteractionReceiver
 {
-    public GameObject textObjectState;
+    public GameObject statusText;
     private TextMesh txt;
     //public FileSurfaceObserver fso;
     public GameObject mapObject;
@@ -39,6 +40,8 @@ public class ButtonReceiver : InteractionReceiver
     private GameObject tbButton_3_1_1;
     private GameObject tbButton_3_1_2;
 
+    public GameObject aboutDialog;
+
     private bool buildMinimap;
 
     private bool save;
@@ -52,7 +55,7 @@ public class ButtonReceiver : InteractionReceiver
 
     void Start()
     {
-        txt = textObjectState.GetComponentInChildren<TextMesh>();
+        txt = statusText.GetComponentInChildren<TextMesh>();
         rdd.enabled = false;
         sh = toolbarObject.GetComponent<SolverHandler>();
         srv = toolbarObject.GetComponent<SolverRadialView>();
@@ -62,6 +65,7 @@ public class ButtonReceiver : InteractionReceiver
         miniMapObject.SetActive(false);
         tbButton_3_1_1.SetActive(false);
         tbButton_3_1_2.SetActive(false);
+        aboutDialog.SetActive(false);
     }
 
     void Update()
@@ -256,6 +260,18 @@ public class ButtonReceiver : InteractionReceiver
                 sh.enabled = !sh.enabled;
                 srv.enabled = !srv.enabled;
                 txt.text = sh.enabled ? "UI unlocked" : "UI locked";
+                break;
+
+            case "ToolbarButton6":
+                Debug.Log("Opening about dialog...");
+                aboutDialog.SetActive(true);
+                statusText.SetActive(false);
+                break;
+                
+            case "CloseButton":
+                Debug.Log("Opening about dialog...");
+                aboutDialog.SetActive(false);
+                statusText.SetActive(true);
                 break;
 
             default:

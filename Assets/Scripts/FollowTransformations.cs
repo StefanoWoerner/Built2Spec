@@ -5,8 +5,14 @@ using System;
 
 public class FollowTransformations : MonoBehaviour {
     public GameObject leader;
-    public bool scaleMovement = true;
-    
+    public MovementMode movementMode = MovementMode.Default;
+    public enum MovementMode
+    {
+        None = 0,
+        Default = 1,
+        ToScale = 2
+    }
+
     private Vector3 scaleFactor;
     private Vector3 lastLeaderPos;
 
@@ -23,16 +29,15 @@ public class FollowTransformations : MonoBehaviour {
         transform.rotation = leader.transform.rotation;
 
         // follow movement
-        if (scaleMovement)
-        {
-            transform.position += Vector3.Scale(scaleFactor, leader.transform.position - lastLeaderPos);
-            lastLeaderPos = leader.transform.position;
-        }
-        else
+        if (movementMode == MovementMode.Default)
         {
             transform.position += leader.transform.position - lastLeaderPos;
-            lastLeaderPos = leader.transform.position;
         }
+        else if (movementMode == MovementMode.ToScale)
+        {
+            transform.position += Vector3.Scale(scaleFactor, leader.transform.position - lastLeaderPos);
+        }
+        lastLeaderPos = leader.transform.position;
 
         // follow scaling
         transform.localScale = Vector3.Scale(scaleFactor, leader.transform.localScale);

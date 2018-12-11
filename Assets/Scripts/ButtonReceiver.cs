@@ -37,8 +37,12 @@ public class ButtonReceiver : InteractionReceiver
     private SolverHandler sh;
     private SolverRadialView srv;
     private TwoHandManipulatable thm;
+    private FollowTransformations ft;
     private GameObject tbButton_3_1_1;
     private GameObject tbButton_3_1_2;
+    private GameObject tbButton_3_2_1;
+    private GameObject tbButton_3_2_2;
+    private GameObject tbButton_3_2_3;
 
     public GameObject aboutDialog;
 
@@ -60,11 +64,13 @@ public class ButtonReceiver : InteractionReceiver
         sh = toolbarObject.GetComponent<SolverHandler>();
         srv = toolbarObject.GetComponent<SolverRadialView>();
         thm = miniMapObject.GetComponent<TwoHandManipulatable>();
+        ft = mapObject.GetComponent<FollowTransformations>();
         tbButton_3_1_1 = interactables.Find(x => x.name == "ToolbarButton3-1-1");
         tbButton_3_1_2 = interactables.Find(x => x.name == "ToolbarButton3-1-2");
-        miniMapObject.SetActive(false);
-        tbButton_3_1_1.SetActive(false);
-        tbButton_3_1_2.SetActive(false);
+        tbButton_3_2_1 = interactables.Find(x => x.name == "ToolbarButton3-2-1");
+        tbButton_3_2_2 = interactables.Find(x => x.name == "ToolbarButton3-2-2");
+        tbButton_3_2_3 = interactables.Find(x => x.name == "ToolbarButton3-2-3");
+        leaveManipulationMode();
         aboutDialog.SetActive(false);
     }
 
@@ -225,10 +231,7 @@ public class ButtonReceiver : InteractionReceiver
                 Debug.Log("Entering manipulation mode...");
                 rdd.enabled = false;
                 SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
-                miniMapObject.SetActive(true);
-                tbButton_3_1_1.SetActive(true);
-                tbButton_3_1_2.SetActive(false);
-                thm.ManipulationMode = ManipulationMode.MoveAndRotate;
+                enterManipulationMode();
                 txt.text = "Pinch the minimap with both hands to transform the mesh.";
                 break;
 
@@ -244,6 +247,30 @@ public class ButtonReceiver : InteractionReceiver
                 tbButton_3_1_2.SetActive(false);
                 tbButton_3_1_1.SetActive(true);
                 thm.ManipulationMode = ManipulationMode.MoveAndRotate;
+                break;
+
+            case "ToolbarButton3-2-1":
+                Debug.Log("Turning movement to scale...");
+                tbButton_3_2_1.SetActive(false);
+                tbButton_3_2_2.SetActive(true);
+                tbButton_3_2_3.SetActive(false);
+                ft.movementMode = FollowTransformations.MovementMode.ToScale;
+                break;
+
+            case "ToolbarButton3-2-2":
+                Debug.Log("Turning movement off...");
+                tbButton_3_2_1.SetActive(false);
+                tbButton_3_2_2.SetActive(false);
+                tbButton_3_2_3.SetActive(true);
+                ft.movementMode = FollowTransformations.MovementMode.None;
+                break;
+
+            case "ToolbarButton3-2-3":
+                Debug.Log("Turning movement 1:1...");
+                tbButton_3_2_1.SetActive(true);
+                tbButton_3_2_2.SetActive(false);
+                tbButton_3_2_3.SetActive(false);
+                ft.movementMode = FollowTransformations.MovementMode.Default;
                 break;
 
             case "ToolbarButton4":
@@ -277,6 +304,27 @@ public class ButtonReceiver : InteractionReceiver
             default:
                 break;
         }
+    }
+
+    private void enterManipulationMode()
+    {
+        miniMapObject.SetActive(true);
+        tbButton_3_1_1.SetActive(true);
+        tbButton_3_1_2.SetActive(false);
+        thm.ManipulationMode = ManipulationMode.MoveAndRotate;
+        tbButton_3_2_1.SetActive(true);
+        tbButton_3_2_2.SetActive(false);
+        tbButton_3_2_3.SetActive(false);
+        ft.movementMode = FollowTransformations.MovementMode.Default;
+    }
+    private void leaveManipulationMode()
+    {
+        miniMapObject.SetActive(false);
+        tbButton_3_1_1.SetActive(false);
+        tbButton_3_1_2.SetActive(false);
+        tbButton_3_2_1.SetActive(false);
+        tbButton_3_2_2.SetActive(false);
+        tbButton_3_2_3.SetActive(false);
     }
 
     private static void SetLayerRecursively(GameObject go, int newLayer)

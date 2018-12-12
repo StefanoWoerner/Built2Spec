@@ -50,6 +50,7 @@ public class ButtonReceiver : InteractionReceiver
     public GameObject aboutDialog;
 
     private bool buildMinimap;
+    private int manipulationModeCountdown = 0;
 
     private bool save;
     private string saveFolderName;
@@ -61,7 +62,7 @@ public class ButtonReceiver : InteractionReceiver
     private Stream loadStream;
 
     private bool spatialMappingActive;
-    public bool SpatialMappingActive
+    private bool SpatialMappingActive
     {
         get
         {
@@ -108,6 +109,15 @@ public class ButtonReceiver : InteractionReceiver
             }
         }
 
+        if (manipulationModeCountdown >= 1)
+        {
+            manipulationModeCountdown--;
+            if (manipulationModeCountdown == 0)
+            {
+                enterManipulate();
+            }
+        }
+
         if (save)
         {
             save = false;
@@ -151,12 +161,14 @@ public class ButtonReceiver : InteractionReceiver
             OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject);
 #endif
             buildMinimap = true;
+            leaveManipulate();
             enterModelOverlay();
+            rdd.enabled = false;
             txt.text = "Mesh \"" + loadFileDisplayName + "\" loaded.";
         }
     }
 
-    protected override void InputDown(GameObject obj, InputEventData eventData)
+    protected override void InputClicked(GameObject obj, InputClickedEventData eventData)
     {
         Debug.Log(obj.name + " : InputDown");
 
@@ -256,7 +268,9 @@ public class ButtonReceiver : InteractionReceiver
                 Debug.Log("Entering manipulation mode...");
                 rdd.enabled = false;
                 leaveModelOverlay();
-                enterManipulate();
+                miniMapObject.transform.position = toolbarObject.transform.position + new Vector3(0, 0.3f, 0);
+                ft.movementMode = FollowTransformations.MovementMode.None;
+                manipulationModeCountdown = 2;
                 txt.text = "Pinch the minimap with both hands to transform the mesh.";
                 break;
 

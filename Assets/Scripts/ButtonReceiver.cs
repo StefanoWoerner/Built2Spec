@@ -27,7 +27,7 @@ public class ButtonReceiver : InteractionReceiver
 {
     public GameObject statusText;
     private TextMesh txt;
-    //public FileSurfaceObserver fso;
+
     public GameObject mapObject;
     public GameObject miniMapObject;
     public GameObject spatialMappingObject;
@@ -38,11 +38,14 @@ public class ButtonReceiver : InteractionReceiver
     private SolverRadialView srv;
     private TwoHandManipulatable thm;
     private FollowTransformations ft;
-    private GameObject tbButton_3_1_1;
-    private GameObject tbButton_3_1_2;
-    private GameObject tbButton_3_2_1;
-    private GameObject tbButton_3_2_2;
-    private GameObject tbButton_3_2_3;
+    private GameObject tbManipulate_1_1;
+    private GameObject tbManipulate_1_2;
+    private GameObject tbManipulate_2_1;
+    private GameObject tbManipulate_2_2;
+    private GameObject tbManipulate_2_3;
+    private GameObject tbModelOverlay_1_1;
+    private GameObject tbModelOverlay_1_2;
+    private GameObject tbModelOverlay_1_3;
 
     public GameObject aboutDialog;
 
@@ -57,20 +60,38 @@ public class ButtonReceiver : InteractionReceiver
     private string loadFileDisplayName;
     private Stream loadStream;
 
+    private bool spatialMappingActive;
+    public bool SpatialMappingActive
+    {
+        get
+        {
+            return spatialMappingActive;
+        }
+        set
+        {
+            spatialMappingObject.SetActive(value);
+            spatialMappingActive = value;
+        }
+    }
+
     void Start()
     {
         txt = statusText.GetComponentInChildren<TextMesh>();
-        rdd.enabled = false;
         sh = toolbarObject.GetComponent<SolverHandler>();
         srv = toolbarObject.GetComponent<SolverRadialView>();
         thm = miniMapObject.GetComponent<TwoHandManipulatable>();
         ft = mapObject.GetComponent<FollowTransformations>();
-        tbButton_3_1_1 = interactables.Find(x => x.name == "ToolbarButton3-1-1");
-        tbButton_3_1_2 = interactables.Find(x => x.name == "ToolbarButton3-1-2");
-        tbButton_3_2_1 = interactables.Find(x => x.name == "ToolbarButton3-2-1");
-        tbButton_3_2_2 = interactables.Find(x => x.name == "ToolbarButton3-2-2");
-        tbButton_3_2_3 = interactables.Find(x => x.name == "ToolbarButton3-2-3");
-        leaveManipulationMode();
+        tbManipulate_1_1 = interactables.Find(x => x.name == "ToolbarManipulate-1-1");
+        tbManipulate_1_2 = interactables.Find(x => x.name == "ToolbarManipulate-1-2");
+        tbManipulate_2_1 = interactables.Find(x => x.name == "ToolbarManipulate-2-1");
+        tbManipulate_2_2 = interactables.Find(x => x.name == "ToolbarManipulate-2-2");
+        tbManipulate_2_3 = interactables.Find(x => x.name == "ToolbarManipulate-2-3");
+        tbModelOverlay_1_1 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-1");
+        tbModelOverlay_1_2 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-2");
+        tbModelOverlay_1_3 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-3");
+        leaveManipulate();
+        enterModelOverlay();
+        rdd.enabled = false;
         aboutDialog.SetActive(false);
     }
 
@@ -87,7 +108,19 @@ public class ButtonReceiver : InteractionReceiver
             }
         }
 
-        if(load)
+        if (save)
+        {
+            save = false;
+#if !UNITY_EDITOR && UNITY_WSA
+            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName, saveStream);
+#else
+            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName);
+#endif
+            spatialMappingObject.SetActive(SpatialMappingActive);
+            txt.text = "Spatial mapping saved to " + saveFileDisplayName;
+        }
+
+        if (load)
         {
             load = false;
             
@@ -118,18 +151,8 @@ public class ButtonReceiver : InteractionReceiver
             OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject);
 #endif
             buildMinimap = true;
+            enterModelOverlay();
             txt.text = "Mesh \"" + loadFileDisplayName + "\" loaded.";
-        }
-
-        if (save)
-        {
-            save = false;
-#if !UNITY_EDITOR && UNITY_WSA
-            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName, saveStream);
-#else
-            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName);
-#endif
-            txt.text = "Spatial mapping saved to " + saveFileDisplayName;
         }
     }
 
@@ -139,7 +162,7 @@ public class ButtonReceiver : InteractionReceiver
 
         switch (obj.name)
         {
-            case "ToolbarButton1":
+            case "ToolbarSave":
                 saveFolderName = ObjSaver.MeshFolderName;
                 saveFileDisplayName = defaultMeshFileName;
 
@@ -164,6 +187,7 @@ public class ButtonReceiver : InteractionReceiver
                             saveFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
                             //txt.text = "Saving to " + file.Path + ", " + saveFolderName + ", " + saveFileDisplayName;
                             save = true;
+                            spatialMappingObject.SetActive(true);
                         }
                         else
                         {
@@ -179,10 +203,11 @@ public class ButtonReceiver : InteractionReceiver
                 Debug.Log("Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
                 txt.text = "Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
                 save = true;
+                spatialMappingObject.SetActive(true);
 #endif
                 break;
 
-            case "ToolbarButton2":
+            case "ToolbarLoad":
                 rdd.enabled = false;
                 
                 loadFolderName = ObjSaver.MeshFolderName;
@@ -227,76 +252,107 @@ public class ButtonReceiver : InteractionReceiver
 #endif
                 break;
 
-            case "ToolbarButton3":
+            case "ToolbarManipulate":
                 Debug.Log("Entering manipulation mode...");
                 rdd.enabled = false;
-                SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
-                enterManipulationMode();
+                leaveModelOverlay();
+                enterManipulate();
                 txt.text = "Pinch the minimap with both hands to transform the mesh.";
                 break;
 
-            case "ToolbarButton3-1-1":
+            case "ToolbarManipulate-1-1":
                 Debug.Log("Turning scaling on...");
-                tbButton_3_1_1.SetActive(false);
-                tbButton_3_1_2.SetActive(true);
+                tbManipulate_1_1.SetActive(false);
+                tbManipulate_1_2.SetActive(true);
                 thm.ManipulationMode = ManipulationMode.MoveScaleAndRotate;
                 break;
 
-            case "ToolbarButton3-1-2":
+            case "ToolbarManipulate-1-2":
                 Debug.Log("Turning scaling off...");
-                tbButton_3_1_2.SetActive(false);
-                tbButton_3_1_1.SetActive(true);
+                tbManipulate_1_1.SetActive(true);
+                tbManipulate_1_2.SetActive(false);
                 thm.ManipulationMode = ManipulationMode.MoveAndRotate;
                 break;
 
-            case "ToolbarButton3-2-1":
+            case "ToolbarManipulate-2-1":
                 Debug.Log("Turning movement to scale...");
-                tbButton_3_2_1.SetActive(false);
-                tbButton_3_2_2.SetActive(true);
-                tbButton_3_2_3.SetActive(false);
+                tbManipulate_2_1.SetActive(false);
+                tbManipulate_2_2.SetActive(true);
+                tbManipulate_2_3.SetActive(false);
                 ft.movementMode = FollowTransformations.MovementMode.ToScale;
                 break;
 
-            case "ToolbarButton3-2-2":
+            case "ToolbarManipulate-2-2":
                 Debug.Log("Turning movement off...");
-                tbButton_3_2_1.SetActive(false);
-                tbButton_3_2_2.SetActive(false);
-                tbButton_3_2_3.SetActive(true);
+                tbManipulate_2_1.SetActive(false);
+                tbManipulate_2_2.SetActive(false);
+                tbManipulate_2_3.SetActive(true);
                 ft.movementMode = FollowTransformations.MovementMode.None;
                 break;
 
-            case "ToolbarButton3-2-3":
+            case "ToolbarManipulate-2-3":
                 Debug.Log("Turning movement 1:1...");
-                tbButton_3_2_1.SetActive(true);
-                tbButton_3_2_2.SetActive(false);
-                tbButton_3_2_3.SetActive(false);
+                tbManipulate_2_1.SetActive(true);
+                tbManipulate_2_2.SetActive(false);
+                tbManipulate_2_3.SetActive(false);
                 ft.movementMode = FollowTransformations.MovementMode.Default;
                 break;
 
-            case "ToolbarButton4":
-                rdd.enabled = true;
-                miniMapObject.SetActive(false);
-                tbButton_3_1_1.SetActive(false);
-                tbButton_3_1_2.SetActive(false);
-                SetLayerRecursively(mapObject, LayerMask.NameToLayer("ReferenceLayer"));
+            case "ToolbarModelOverlay":
+                Debug.Log("Model Overlay view...");
+                rdd.enabled = false;
+                leaveManipulate();
+                enterModelOverlay();
                 txt.text = "";
                 break;
 
-            case "ToolbarButton5":
+            case "ToolbarModelOverlay-1-1":
+                Debug.Log("Show Model only...");
+                tbModelOverlay_1_1.SetActive(false);
+                tbModelOverlay_1_2.SetActive(true);
+                tbModelOverlay_1_3.SetActive(false);
+                SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
+                SpatialMappingActive = false;
+                break;
+
+            case "ToolbarModelOverlay-1-2":
+                Debug.Log("Show Spatial Mapping only...");
+                tbModelOverlay_1_1.SetActive(false);
+                tbModelOverlay_1_2.SetActive(false);
+                tbModelOverlay_1_3.SetActive(true);
+                SetLayerRecursively(mapObject, LayerMask.NameToLayer("ReferenceLayer"));
+                SpatialMappingActive = true;
+                break;
+
+            case "ToolbarModelOverlay-1-3":
+                Debug.Log("Show Model and Spatial Mapping...");
+                enterModelOverlay();
+                break;
+
+            case "ToolbarDifferenceReasoning":
+                leaveManipulate();
+                leaveModelOverlay();
+                rdd.enabled = true;
+                SetLayerRecursively(mapObject, LayerMask.NameToLayer("ReferenceLayer"));
+                SpatialMappingActive = true;
+                txt.text = "";
+                break;
+
+            case "ToolbarLockToggle":
                 Debug.Log("Changing UI lock...");
                 sh.enabled = !sh.enabled;
                 srv.enabled = !srv.enabled;
                 txt.text = sh.enabled ? "UI unlocked" : "UI locked";
                 break;
 
-            case "ToolbarButton6":
+            case "ToolbarAbout":
                 Debug.Log("Opening about dialog...");
                 aboutDialog.SetActive(true);
                 statusText.SetActive(false);
                 break;
                 
             case "CloseButton":
-                Debug.Log("Opening about dialog...");
+                Debug.Log("Closing about dialog...");
                 aboutDialog.SetActive(false);
                 statusText.SetActive(true);
                 break;
@@ -306,25 +362,45 @@ public class ButtonReceiver : InteractionReceiver
         }
     }
 
-    private void enterManipulationMode()
+    private void enterManipulate()
     {
         miniMapObject.SetActive(true);
-        tbButton_3_1_1.SetActive(true);
-        tbButton_3_1_2.SetActive(false);
+        SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
+        SpatialMappingActive = false;
+
+        tbManipulate_1_1.SetActive(true);
+        tbManipulate_1_2.SetActive(false);
         thm.ManipulationMode = ManipulationMode.MoveAndRotate;
-        tbButton_3_2_1.SetActive(true);
-        tbButton_3_2_2.SetActive(false);
-        tbButton_3_2_3.SetActive(false);
+        tbManipulate_2_1.SetActive(true);
+        tbManipulate_2_2.SetActive(false);
+        tbManipulate_2_3.SetActive(false);
         ft.movementMode = FollowTransformations.MovementMode.Default;
     }
-    private void leaveManipulationMode()
+
+    private void leaveManipulate()
     {
         miniMapObject.SetActive(false);
-        tbButton_3_1_1.SetActive(false);
-        tbButton_3_1_2.SetActive(false);
-        tbButton_3_2_1.SetActive(false);
-        tbButton_3_2_2.SetActive(false);
-        tbButton_3_2_3.SetActive(false);
+        tbManipulate_1_1.SetActive(false);
+        tbManipulate_1_2.SetActive(false);
+        tbManipulate_2_1.SetActive(false);
+        tbManipulate_2_2.SetActive(false);
+        tbManipulate_2_3.SetActive(false);
+    }
+
+    private void enterModelOverlay()
+    {
+        tbModelOverlay_1_1.SetActive(true);
+        tbModelOverlay_1_2.SetActive(false);
+        tbModelOverlay_1_3.SetActive(false);
+        SetLayerRecursively(mapObject, LayerMask.NameToLayer("Default"));
+        SpatialMappingActive = true;
+    }
+
+    private void leaveModelOverlay()
+    {
+        tbModelOverlay_1_1.SetActive(false);
+        tbModelOverlay_1_2.SetActive(false);
+        tbModelOverlay_1_3.SetActive(false);
     }
 
     private static void SetLayerRecursively(GameObject go, int newLayer)

@@ -44,6 +44,7 @@ public class ButtonReceiver : InteractionReceiver
     private GameObject tbManipulate_2_1;
     private GameObject tbManipulate_2_2;
     private GameObject tbManipulate_2_3;
+    private GameObject tbManipulate_3_1;
     private GameObject tbModelOverlay_1_1;
     private GameObject tbModelOverlay_1_2;
     private GameObject tbModelOverlay_1_3;
@@ -63,6 +64,8 @@ public class ButtonReceiver : InteractionReceiver
     private Stream loadStream;
 
     private bool spatialMappingActive;
+    private bool yUp = true;
+
     private bool SpatialMappingActive
     {
         get
@@ -89,6 +92,7 @@ public class ButtonReceiver : InteractionReceiver
         tbManipulate_2_1 = interactables.Find(x => x.name == "ToolbarManipulate-2-1");
         tbManipulate_2_2 = interactables.Find(x => x.name == "ToolbarManipulate-2-2");
         tbManipulate_2_3 = interactables.Find(x => x.name == "ToolbarManipulate-2-3");
+        tbManipulate_3_1 = interactables.Find(x => x.name == "ToolbarManipulate-3-1");
         tbModelOverlay_1_1 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-1");
         tbModelOverlay_1_2 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-2");
         tbModelOverlay_1_3 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-3");
@@ -103,6 +107,7 @@ public class ButtonReceiver : InteractionReceiver
         if (buildMinimap)
         {
             buildMinimap = false;
+            yUp = true;
 
             foreach (Transform child in mapObject.transform)
             {
@@ -316,6 +321,12 @@ public class ButtonReceiver : InteractionReceiver
                 ft.movementMode = FollowTransformations.MovementMode.Default;
                 break;
 
+            case "ToolbarManipulate-3-1":
+                Debug.Log("Flipping Y and Z...");
+                miniMapObject.transform.Rotate(yUp ? 270 : 90, 0, 0);
+                yUp = !yUp;
+                break;
+
             case "ToolbarModelOverlay":
                 Debug.Log("Model Overlay view...");
                 rdd.enabled = false;
@@ -393,6 +404,7 @@ public class ButtonReceiver : InteractionReceiver
         tbManipulate_2_2.SetActive(false);
         tbManipulate_2_3.SetActive(false);
         ft.movementMode = FollowTransformations.MovementMode.Default;
+        tbManipulate_3_1.SetActive(true);
     }
 
     private void leaveManipulate()
@@ -403,6 +415,7 @@ public class ButtonReceiver : InteractionReceiver
         tbManipulate_2_1.SetActive(false);
         tbManipulate_2_2.SetActive(false);
         tbManipulate_2_3.SetActive(false);
+        tbManipulate_3_1.SetActive(false);
     }
 
     private void enterModelOverlay()

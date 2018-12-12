@@ -30,6 +30,7 @@ public class ButtonReceiver : InteractionReceiver
 
     public GameObject mapObject;
     public GameObject miniMapObject;
+    private Vector3 initialMiniMapScale;
     public GameObject spatialMappingObject;
     public RenderDepthDifference rdd;
     public GameObject toolbarObject;
@@ -78,6 +79,7 @@ public class ButtonReceiver : InteractionReceiver
     void Start()
     {
         txt = statusText.GetComponentInChildren<TextMesh>();
+        initialMiniMapScale = miniMapObject.transform.localScale;
         sh = toolbarObject.GetComponent<SolverHandler>();
         srv = toolbarObject.GetComponent<SolverRadialView>();
         thm = miniMapObject.GetComponent<TwoHandManipulatable>();
@@ -133,7 +135,9 @@ public class ButtonReceiver : InteractionReceiver
         if (load)
         {
             load = false;
-            
+
+            miniMapObject.transform.localScale = initialMiniMapScale;
+
             foreach (Transform child in mapObject.transform)
             {
                 Destroy(child.gameObject);

@@ -1,10 +1,19 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 
+/// <summary>
+/// Script that allows the containing game object to follow the movements of another game object.
+/// </summary>
 public class FollowTransformations : MonoBehaviour {
+    
+    /// <summary>
+    /// The game object to follow.
+    /// </summary>
     public GameObject leader;
+    
+    /// <summary>
+    /// Sets how to follow the leader's translation.
+    /// </summary>
     public MovementMode movementMode = MovementMode.Default;
     public enum MovementMode
     {
@@ -15,20 +24,19 @@ public class FollowTransformations : MonoBehaviour {
 
     private Vector3 scaleFactor;
     private Vector3 lastLeaderPos;
-
-	// Use this for initialization
+    
 	void Start () {
+        // determine scaling factor and initial leader position
         scaleFactor = ElementWiseDivision(transform.localScale, leader.transform.localScale);
         lastLeaderPos = leader.transform.position;
     }
 	
-	// Update is called once per frame
 	void Update () {
 
         // follow rotation
         transform.rotation = leader.transform.rotation;
 
-        // follow movement
+        // follow translation
         if (movementMode == MovementMode.Default)
         {
             transform.position += leader.transform.position - lastLeaderPos;
@@ -43,6 +51,9 @@ public class FollowTransformations : MonoBehaviour {
         transform.localScale = Vector3.Scale(scaleFactor, leader.transform.localScale);
     }
 
+    /// <summary>
+    /// Performs element-wise division of two 3-dimensional vectors.
+    /// </summary>
     Vector3 ElementWiseDivision(Vector3 a, Vector3 b)
     {
         if (b[0] == 0 || b[1] == 0 || b[2] == 0)

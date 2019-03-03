@@ -11,6 +11,9 @@ using Windows.Storage;
 using Windows.Storage.Streams;
 #endif
 
+/// <summary>
+/// Class that handles saving of meshes to .obj files.
+/// </summary>
 public static class ObjSaver
 {
     /// <summary>
@@ -33,42 +36,12 @@ public static class ObjSaver
         }
     }
 
+    // global counter
     public static int vertexCount;
-    public static string Save(string fileName, IEnumerable<Mesh> meshes)
-    {
-        if (string.IsNullOrEmpty(fileName))
-        {
-            throw new ArgumentException("Must specify a valid fileName.");
-        }
 
-        if (meshes == null)
-        {
-            throw new ArgumentNullException("Value of meshes cannot be null.");
-        }
-
-        // Create the mesh file.
-        String folderName = MeshFolderName;
-        Debug.Log(String.Format("Saving mesh file: {0}", Path.Combine(folderName, fileName + fileExtension)));
-
-        vertexCount = 0;
-        using (StreamWriter outputFile = new StreamWriter(OpenFileForWrite(folderName, fileName + fileExtension)))
-        {
-
-            int o = 0;
-            foreach (Mesh theMesh in meshes)
-            {
-                o++;
-                outputFile.WriteLine("o Object." + o);
-                outputFile.Write(MeshToString(theMesh, vertexCount));
-                outputFile.WriteLine("");
-            }
-        }
-
-        Debug.Log("Mesh file saved.");
-
-        return Path.Combine(folderName, fileName + fileExtension);
-    }
-
+    /// <summary>
+    /// Saves a collection of mesh filters to a file.
+    /// </summary>
     public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters, String folderName = null, Stream stream = null)
     {
         if (string.IsNullOrEmpty(fileName))
@@ -104,6 +77,9 @@ public static class ObjSaver
         return Path.Combine(folderName, fileName + fileExtension);
     }
 
+    /// <summary>
+    /// Serializes a mesh.
+    /// </summary>
     public static string MeshToString(Mesh m, int lastVertexIndex = 0, Transform transform = null)
     {
         StringBuilder sb = new StringBuilder();

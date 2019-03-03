@@ -25,20 +25,54 @@ using System.Threading.Tasks;
 
 public class ButtonReceiver : InteractionReceiver
 {
+    /// <summary>
+    /// The status text game object
+    /// </summary>
     public GameObject statusText;
+
     private TextMesh txt;
 
+    /// <summary>
+    /// The game object holding the loaded model
+    /// </summary>
     public GameObject mapObject;
+
+    /// <summary>
+    /// The game object holding the mini map
+    /// </summary>
     public GameObject miniMapObject;
+
     private Vector3 initialMiniMapScale;
+
+    /// <summary>
+    /// The spatial mapping game object (from HoloToolkit)
+    /// </summary>
     public GameObject spatialMappingObject;
+
+    /// <summary>
+    /// The rendering script for difference reasoning
+    /// </summary>
     public RenderDepthDifference rdd;
+
+    /// <summary>
+    /// The toolbar game object
+    /// </summary>
     public GameObject toolbarObject;
+    
+    /// <summary>
+    /// Holds the default name for saving spatial mappings.
+    /// </summary>
     public string defaultMeshFileName;
+
+    // Scripts for floating toolbar
     private SolverHandler sh;
     private SolverRadialView srv;
+
+    // Scripts for mini map / manipulation
     private TwoHandManipulatable thm;
     private FollowTransformations ft;
+
+    // Various toolbar buttons which need their visibility toggled.
     private GameObject tbManipulate_1_1;
     private GameObject tbManipulate_1_2;
     private GameObject tbManipulate_2_1;
@@ -49,23 +83,32 @@ public class ButtonReceiver : InteractionReceiver
     private GameObject tbModelOverlay_1_2;
     private GameObject tbModelOverlay_1_3;
 
+    /// <summary>
+    /// A game object holding the "About" dialog
+    /// </summary>
     public GameObject aboutDialog;
 
+    // Flags for the update method to perform actions on next frame
     private bool buildMinimap;
     private int manipulationModeCountdown = 0;
-
     private bool save;
+    private bool load;
+
+    // Holds file names and streams when saving or loading
     private string saveFolderName;
     private string saveFileDisplayName;
     private Stream saveStream;
-    private bool load;
     private string loadFolderName;
     private string loadFileDisplayName;
     private Stream loadStream;
 
+    // Toggle statuses
     private bool spatialMappingActive;
     private bool yUp = true;
 
+    /// <summary>
+    /// Sets whether the spatial mapping game object is active.
+    /// </summary>
     private bool SpatialMappingActive
     {
         get
@@ -79,9 +122,15 @@ public class ButtonReceiver : InteractionReceiver
         }
     }
 
+    /// <summary>
+    /// Start method fills the fields.
+    /// </summary>
     void Start()
     {
-        rdd.depthDifferenceThreshold = 0.005f;
+        // Fix depth difference threshold
+        //rdd.depthDifferenceThreshold = 0.005f;
+
+        // Find elements and fill fields
         txt = statusText.GetComponentInChildren<TextMesh>();
         initialMiniMapScale = miniMapObject.transform.localScale;
         sh = toolbarObject.GetComponent<SolverHandler>();
@@ -97,12 +146,17 @@ public class ButtonReceiver : InteractionReceiver
         tbModelOverlay_1_1 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-1");
         tbModelOverlay_1_2 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-2");
         tbModelOverlay_1_3 = interactables.Find(x => x.name == "ToolbarModelOverlay-1-3");
+
+        // Start in model overlay mode
         leaveManipulate();
         enterModelOverlay();
         rdd.enabled = false;
         aboutDialog.SetActive(false);
     }
 
+    /// <summary>
+    /// Update method performs actions each frame.
+    /// </summary>
     void Update()
     {
         if (buildMinimap)
@@ -178,9 +232,12 @@ public class ButtonReceiver : InteractionReceiver
         }
     }
 
+    /// <summary>
+    /// InputClicked method listens for UI interactions.
+    /// </summary>
     protected override void InputClicked(GameObject obj, InputClickedEventData eventData)
     {
-        Debug.Log(obj.name + " : InputDown");
+        Debug.Log(obj.name + " : InputClicked");
 
         switch (obj.name)
         {
@@ -392,6 +449,9 @@ public class ButtonReceiver : InteractionReceiver
         }
     }
 
+    /// <summary>
+    /// Performs necessary UI/view settings for starting manipulation mode.
+    /// </summary>
     private void enterManipulate()
     {
         miniMapObject.SetActive(true);
@@ -408,6 +468,9 @@ public class ButtonReceiver : InteractionReceiver
         tbManipulate_3_1.SetActive(true);
     }
 
+    /// <summary>
+    /// Performs necessary UI/view settings for leaving manipulation mode.
+    /// </summary>
     private void leaveManipulate()
     {
         miniMapObject.SetActive(false);
@@ -419,6 +482,9 @@ public class ButtonReceiver : InteractionReceiver
         tbManipulate_3_1.SetActive(false);
     }
 
+    /// <summary>
+    /// Performs necessary UI/view settings for starting model overlay mode.
+    /// </summary>
     private void enterModelOverlay()
     {
         tbModelOverlay_1_1.SetActive(true);
@@ -428,6 +494,9 @@ public class ButtonReceiver : InteractionReceiver
         SpatialMappingActive = true;
     }
 
+    /// <summary>
+    /// Performs necessary UI/view settings for leaving model overlay mode.
+    /// </summary>
     private void leaveModelOverlay()
     {
         tbModelOverlay_1_1.SetActive(false);
@@ -435,6 +504,9 @@ public class ButtonReceiver : InteractionReceiver
         tbModelOverlay_1_3.SetActive(false);
     }
 
+    /// <summary>
+    /// Assigns a game object and all it's children to a layer.
+    /// </summary>
     private static void SetLayerRecursively(GameObject go, int newLayer)
     {
         go.layer = newLayer;

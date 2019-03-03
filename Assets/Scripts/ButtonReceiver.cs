@@ -81,6 +81,7 @@ public class ButtonReceiver : InteractionReceiver
 
     void Start()
     {
+        rdd.depthDifferenceThreshold = 0.005f;
         txt = statusText.GetComponentInChildren<TextMesh>();
         initialMiniMapScale = miniMapObject.transform.localScale;
         sh = toolbarObject.GetComponent<SolverHandler>();

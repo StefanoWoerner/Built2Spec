@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using UnityEngine;
 
 #if !UNITY_EDITOR && UNITY_WSA
-using System.Threading.Tasks;
 using Windows.Storage;
-using Windows.Storage.Streams;
 #endif
 
 /// <summary>
@@ -19,7 +16,7 @@ public static class ObjSaver
     /// <summary>
     /// The extension given to mesh files.
     /// </summary>
-    private static string fileExtension = ".obj";
+    public static string fileExtension = ".obj";
 
     /// <summary>
     /// Read-only property which returns the folder path where mesh files are stored.
@@ -42,11 +39,11 @@ public static class ObjSaver
     /// <summary>
     /// Saves a collection of mesh filters to a file.
     /// </summary>
-    public static string Save(string fileName, IEnumerable<MeshFilter> meshFilters, String folderName = null, Stream stream = null)
+    public static void Save(IEnumerable<MeshFilter> meshFilters, Stream saveStream)
     {
-        if (string.IsNullOrEmpty(fileName))
+        if (saveStream == null)
         {
-            throw new ArgumentException("Must specify a valid fileName.");
+            throw new ArgumentException("Must pass a valid stream.");
         }
 
         if (meshFilters == null)
@@ -54,14 +51,10 @@ public static class ObjSaver
             throw new ArgumentNullException("Value of meshFilters cannot be null.");
         }
 
-        // Create the mesh file.
-        folderName = folderName ?? MeshFolderName;
-        Debug.Log(String.Format("Saving mesh file: {0}", Path.Combine(folderName, fileName + fileExtension)));
-
+        // Create the mesh file
         vertexCount = 0;
-        using (StreamWriter outputFile = new StreamWriter(stream ?? OpenFileForWrite(folderName, fileName + fileExtension)))
+        using (StreamWriter outputFile = new StreamWriter(saveStream))
         {
-
             int o = 0;
             foreach (MeshFilter meshFilter in meshFilters)
             {
@@ -73,8 +66,6 @@ public static class ObjSaver
         }
 
         Debug.Log("Mesh file saved.");
-
-        return Path.Combine(folderName, fileName + fileExtension);
     }
 
     /// <summary>
@@ -124,60 +115,6 @@ public static class ObjSaver
         }
         return sb.ToString();
     }
-
-    /// <summary>
-    /// Opens the specified file for reading.
-    /// </summary>
-    /// <param name="folderName">The name of the folder containing the file.</param>
-    /// <param name="fileName">The name of the file, including extension. </param>
-    /// <returns>Stream used for reading the file's data.</returns>
-    private static Stream OpenFileForRead(string folderName, string fileName)
-    {
-        Stream stream = null;
-
-#if !UNITY_EDITOR && UNITY_WSA
-            Task<Task> task = Task<Task>.Factory.StartNew(
-                            async () =>
-                            {
-                                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderName);
-                                StorageFile file = await folder.GetFileAsync(fileName);
-                                IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
-                                stream = randomAccessStream.AsStreamForRead();
-                            });
-            task.Wait();
-            task.Result.Wait();
-#else
-        stream = new FileStream(Path.Combine(folderName, fileName), FileMode.Open, FileAccess.Read);
-#endif
-        return stream;
-    }
-
-    /// <summary>
-    /// Opens the specified file for writing.
-    /// </summary>
-    /// <param name="folderName">The name of the folder containing the file.</param>
-    /// <param name="fileName">The name of the file, including extension.</param>
-    /// <returns>Stream used for writing the file's data.</returns>
-    /// <remarks>If the specified file already exists, it will be overwritten.</remarks>
-    private static Stream OpenFileForWrite(string folderName, string fileName)
-    {
-        Stream stream = null;
-
-#if !UNITY_EDITOR && UNITY_WSA
-            Task<Task> task = Task<Task>.Factory.StartNew(
-                            async () =>
-                            {
-                                StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderName);
-                                StorageFile file = await folder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
-                                IRandomAccessStream randomAccessStream = await file.OpenAsync(FileAccessMode.ReadWrite);
-                                stream = randomAccessStream.AsStreamForWrite();
-                            });
-            task.Wait();
-            task.Result.Wait();
-#else
-        stream = new FileStream(Path.Combine(folderName, fileName), FileMode.Create, FileAccess.Write);
-#endif
-        return stream;
-    }
+    
 }
 

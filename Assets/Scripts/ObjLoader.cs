@@ -1,31 +1,26 @@
-﻿/*
-(C) 2015 AARO4130
-DO NOT USE PARTS OF, OR THE ENTIRE SCRIPT, AND CLAIM AS YOUR OWN WORK
-*/
+﻿/**
+ * Original by AARO4130
+ * (C) 2015 AARO4130
+ * DO NOT USE PARTS OF, OR THE ENTIRE SCRIPT, AND CLAIM AS YOUR OWN WORK
+ * 
+ * Adapted by Stefano Woerner (Computer Vision and Geometry Group, ETH Zurich)
+ */
 
 using System;
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-#if !UNITY_EDITOR && UNITY_WSA
-using System.Threading.Tasks;
-using Windows.Storage;
-using Windows.Storage.Streams;
-#endif
-
-public class OBJLoader
+public class ObjLoader
 {
     public static bool splitByMaterial = false;
     public static string[] searchPaths = new string[] { "", "%FileName%_Textures" + Path.DirectorySeparatorChar };
+    
     //structures
     struct OBJFace
     {
@@ -33,8 +28,7 @@ public class OBJLoader
         public string meshName;
         public int[] indexes;
     }
-
-
+    
     public static Vector3 ParseVectorFromCMPS(string[] cmps)
     {
         float x = float.Parse(cmps[1]);
@@ -46,125 +40,10 @@ public class OBJLoader
         }
         return new Vector2(x, y);
     }
-    public static Color ParseColorFromCMPS(string[] cmps,float scalar = 1.0f)
+
+    public static GameObject LoadOBJFile(string meshName, Material defaultMaterial, Stream loadStream, GameObject parentObject = null)
     {
-        float Kr = float.Parse(cmps[1]) * scalar ;
-        float Kg = float.Parse(cmps[2]) * scalar;
-        float Kb = float.Parse(cmps[3]) * scalar;
-        return new Color(Kr, Kg, Kb);
-    }
-
-    public static string OBJGetFilePath(string path, string basePath, string fileName)
-    {
-        foreach (string sp in searchPaths)
-        {
-            string s = sp.Replace("%FileName%", fileName);
-            if (File.Exists(basePath + s + path))
-            {
-                return basePath + s + path;
-            }
-            else if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return null;
-    }
-    public static Material[] LoadMTLFile(string fn, Material defaultMaterial)
-    {
-        Material currentMaterial = null;
-        List<Material> matlList = new List<Material>();
-        FileInfo mtlFileInfo = new FileInfo(fn);
-        string baseFileName = Path.GetFileNameWithoutExtension(fn);
-        string mtlFileDirectory = mtlFileInfo.Directory.FullName + Path.DirectorySeparatorChar;
-        foreach (string ln in ReadAllLines(fn))
-        {
-            string l = ln.Trim().Replace("  ", " ");
-            string[] cmps = l.Split(' ');
-            string data = l.Remove(0, l.IndexOf(' ') + 1);
-
-            if (cmps[0] == "newmtl")
-            {
-                if (currentMaterial != null)
-                {
-                    matlList.Add(currentMaterial);
-                }
-                currentMaterial = defaultMaterial; //new Material(Shader.Find("Standard (Specular setup)"));
-                currentMaterial.name = data;
-            }
-            else if (cmps[0] == "Kd")
-            {
-                currentMaterial.SetColor("_Color",ParseColorFromCMPS(cmps));
-            }
-            else if (cmps[0] == "map_Kd")
-            {
-                //TEXTURE
-                string fpth = OBJGetFilePath(data, mtlFileDirectory,baseFileName);
-                if (fpth != null)
-                    currentMaterial.SetTexture("_MainTex",TextureLoader.LoadTexture(fpth));
-            }
-            else if (cmps[0] == "map_Bump")
-            {
-                //TEXTURE
-                string fpth = OBJGetFilePath(data, mtlFileDirectory,baseFileName);
-                if (fpth != null)
-                {
-                    currentMaterial.SetTexture("_BumpMap", TextureLoader.LoadTexture(fpth, true));
-                    currentMaterial.EnableKeyword("_NORMALMAP");
-                }
-            }
-            else if (cmps[0] == "Ks")
-            {
-                currentMaterial.SetColor("_SpecColor", ParseColorFromCMPS(cmps));
-            }
-            else if (cmps[0] == "Ka")
-            {
-                currentMaterial.SetColor("_EmissionColor", ParseColorFromCMPS(cmps, 0.05f));
-                currentMaterial.EnableKeyword("_EMISSION");
-            }
-            else if (cmps[0] == "d")
-            {
-                float visibility = float.Parse(cmps[1]);
-                if (visibility < 1)
-                {
-                    Color temp = currentMaterial.color;
-
-                    temp.a = visibility;
-                    currentMaterial.SetColor("_Color", temp);
-
-                    //TRANSPARENCY ENABLER
-                    currentMaterial.SetFloat("_Mode", 3);
-                    currentMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                    currentMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                    currentMaterial.SetInt("_ZWrite", 0);
-                    currentMaterial.DisableKeyword("_ALPHATEST_ON");
-                    currentMaterial.EnableKeyword("_ALPHABLEND_ON");
-                    currentMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                    currentMaterial.renderQueue = 3000;
-                }
-
-            }
-            else if (cmps[0] == "Ns")
-            {
-                float Ns = float.Parse(cmps[1]);
-                Ns = (Ns / 1000);
-                currentMaterial.SetFloat("_Glossiness", Ns);
-
-            }
-        }
-        if(currentMaterial != null)
-        {
-            matlList.Add(currentMaterial);
-        }
-        return matlList.ToArray();
-    }
-
-    public static GameObject LoadOBJFile(string fn, Material defaultMaterial, GameObject parentObject = null, string[] lines = null)
-    {
-
-        string meshName = Path.GetFileNameWithoutExtension(fn);
-
+        
         bool hasNormals = false;
         //OBJ LISTS
         List<Vector3> vertices = new List<Vector3>();
@@ -184,10 +63,8 @@ public class OBJLoader
         string cmesh = "default";
         //CACHE
         Material[] materialCache = null;
-        //save this info for later
-        FileInfo OBJFileInfo = new FileInfo(fn);
          
-        foreach (string ln in (lines ?? ReadAllLines(fn)))
+        foreach (string ln in ReadAllLines(loadStream))
         {
             if (ln.Length > 0 && ln[0] != '#')
             {
@@ -197,11 +74,7 @@ public class OBJLoader
 
                 if (cmps[0] == "mtllib")
                 {
-                    //load cache
-                    string pth = OBJGetFilePath(data, OBJFileInfo.Directory.FullName + Path.DirectorySeparatorChar, meshName);
-                    if (pth != null)
-                        materialCache = LoadMTLFile(pth, defaultMaterial);
-
+                    //do nothing
                 }
                 else if ((cmps[0] == "g" || cmps[0] == "o") && splitByMaterial == false)
                 {
@@ -449,53 +322,20 @@ public class OBJLoader
         return parentObject;
     }
 
-    public static string[] ReadAllLines(string fn)
+    public static string[] ReadAllLines(Stream loadStream)
     {
-        string folderName = Path.GetDirectoryName(fn);
-        string fileName = Path.GetFileName(fn);
-
         List<string> lines = new List<string>();
 
-        using (StreamReader r = new StreamReader(OpenFileForRead(folderName, fileName)))
+        using (StreamReader r = new StreamReader(loadStream))
         {
             string line;
             while ((line = r.ReadLine()) != null)
             {
-                // 4
-                // Insert logic here.
-                // ...
-                // The "line" value is a line in the file.
-                // Add it to our List.
                 lines.Add(line);
             }
         }
+
         return lines.ToArray();
     }
-
-    /// <summary>
-    /// Opens the specified file for reading.
-    /// </summary>
-    /// <param name="folderName">The name of the folder containing the file.</param>
-    /// <param name="fileName">The name of the file, including extension. </param>
-    /// <returns>Stream used for reading the file's data.</returns>
-    private static Stream OpenFileForRead(string folderName, string fileName)
-    {
-        Stream stream = null;
-
-#if !UNITY_EDITOR && UNITY_WSA
-        Task<Task> task = Task<Task>.Factory.StartNew(
-                        async () =>
-                        {
-                            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(folderName);
-                            StorageFile file = await folder.GetFileAsync(fileName);
-                            IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
-                            stream = randomAccessStream.AsStreamForRead();
-                        });
-        task.Wait();
-        task.Result.Wait();
-#else
-        stream = new FileStream(Path.Combine(folderName, fileName), FileMode.Open, FileAccess.Read);
-#endif
-        return stream;
-    }
+    
 }

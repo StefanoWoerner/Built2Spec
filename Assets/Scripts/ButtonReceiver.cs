@@ -2,25 +2,19 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using HoloToolkit.Unity;
-using System.Collections.Generic;
 using UnityEngine;
 using HoloToolkit.Unity.Receivers;
 using HoloToolkit.Unity.InputModule;
 using HoloToolkit.Unity.SpatialMapping;
 using System.IO;
-using HoloToolkit.Unity.UX;
 using HoloToolkit.Unity.InputModule.Utilities.Interactions;
-using HoloToolkit.UX.Dialog;
 
-#if WINDOWS_UWP
-
+#if !UNITY_EDITOR && UNITY_WSA
 using System;
+using System.Collections.Generic;
 using Windows.Storage.Pickers;
 using Windows.Storage;
 using Windows.Storage.Streams;
-using System.Threading;
-using System.Threading.Tasks;
-
 #endif
 
 public class ButtonReceiver : InteractionReceiver
@@ -95,10 +89,8 @@ public class ButtonReceiver : InteractionReceiver
     private bool load;
 
     // Holds file names and streams when saving or loading
-    private string saveFolderName;
     private string saveFileDisplayName;
     private Stream saveStream;
-    private string loadFolderName;
     private string loadFileDisplayName;
     private Stream loadStream;
 
@@ -127,9 +119,6 @@ public class ButtonReceiver : InteractionReceiver
     /// </summary>
     void Start()
     {
-        // Fix depth difference threshold
-        //rdd.depthDifferenceThreshold = 0.005f;
-
         // Find elements and fill fields
         txt = statusText.GetComponentInChildren<TextMesh>();
         initialMiniMapScale = miniMapObject.transform.localScale;
@@ -183,11 +172,8 @@ public class ButtonReceiver : InteractionReceiver
         if (save)
         {
             save = false;
-#if !UNITY_EDITOR && UNITY_WSA
-            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName, saveStream);
-#else
-            ObjSaver.Save(saveFileDisplayName, SpatialMappingManager.Instance.GetMeshFilters(), saveFolderName);
-#endif
+
+            ObjSaver.Save(SpatialMappingManager.Instance.GetMeshFilters(), saveStream);
             spatialMappingObject.SetActive(SpatialMappingActive);
             txt.text = "Spatial mapping saved to " + saveFileDisplayName;
         }
@@ -198,6 +184,7 @@ public class ButtonReceiver : InteractionReceiver
 
             miniMapObject.transform.localScale = initialMiniMapScale;
 
+            // empty map and mini map
             foreach (Transform child in mapObject.transform)
             {
                 Destroy(child.gameObject);
@@ -208,22 +195,9 @@ public class ButtonReceiver : InteractionReceiver
             }
 
             Material material = Resources.Load("defaultMat", typeof(Material)) as Material;
+            
+            ObjLoader.LoadOBJFile(loadFileDisplayName, material, loadStream, mapObject);
 
-#if !UNITY_EDITOR && UNITY_WSA
-            List<string> lines = new List<string>();
-
-            using (StreamReader r = new StreamReader(loadStream))
-            {
-                string line;
-                while ((line = r.ReadLine()) != null)
-                {
-                    lines.Add(line);
-                }
-            }
-            OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject, lines.ToArray());
-#else
-            OBJLoader.LoadOBJFile(Path.Combine(loadFolderName, loadFileDisplayName + ".obj"), material, mapObject);
-#endif
             buildMinimap = true;
             leaveManipulate();
             enterModelOverlay();
@@ -242,93 +216,11 @@ public class ButtonReceiver : InteractionReceiver
         switch (obj.name)
         {
             case "ToolbarSave":
-                saveFolderName = ObjSaver.MeshFolderName;
-                saveFileDisplayName = defaultMeshFileName;
-
-#if !UNITY_EDITOR && UNITY_WSA
-                UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
-                {
-                    FileSavePicker savePicker = new FileSavePicker();
-                    savePicker.SuggestedStartLocation = PickerLocationId.Objects3D;
-                    savePicker.FileTypeChoices.Add("Wavefront OBJ", new List<string>() { ".obj" });
-                    savePicker.SuggestedFileName = "SpatialMappingMesh";
-
-                    StorageFile file = await savePicker.PickSaveFileAsync();
-                    IRandomAccessStream randomAccessStream = await file.OpenAsync(FileAccessMode.ReadWrite);
-                    saveStream = randomAccessStream.AsStreamForWrite();
-                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                    {
-                        if (file != null)
-                        {
-                            // Application now has read/write access to the picked file
-                            Debug.Log("Saving to " + file.Path);
-                            saveFolderName = Path.GetDirectoryName(file.Path);
-                            saveFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
-                            //txt.text = "Saving to " + file.Path + ", " + saveFolderName + ", " + saveFileDisplayName;
-                            save = true;
-                            spatialMappingObject.SetActive(true);
-                        }
-                        else
-                        {
-                            // The picker was dismissed with no selected file
-                            Debug.Log("File picker operation cancelled");
-                            txt.text = "File picker operation cancelled";
-                        }
-
-                    }, true);
-
-                }, true);
-#else
-                Debug.Log("Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
-                txt.text = "Saving to " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
-                save = true;
-                spatialMappingObject.SetActive(true);
-#endif
+                OpenStreamForSave();
                 break;
 
             case "ToolbarLoad":
-                rdd.enabled = false;
-                
-                loadFolderName = ObjSaver.MeshFolderName;
-                loadFileDisplayName = defaultMeshFileName;
-
-#if !UNITY_EDITOR && UNITY_WSA
-                UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
-                {
-                    FileOpenPicker openPicker = new FileOpenPicker();
-                    openPicker.ViewMode = PickerViewMode.Thumbnail;
-                    openPicker.SuggestedStartLocation = PickerLocationId.Objects3D;
-                    openPicker.FileTypeFilter.Add(".obj");
-
-                    StorageFile file = await openPicker.PickSingleFileAsync();
-                    IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
-                    loadStream = randomAccessStream.AsStreamForRead();
-                    UnityEngine.WSA.Application.InvokeOnAppThread(() =>
-                    {
-                        if (file != null)
-                        {
-                            // Application now has read/write access to the picked file
-                            Debug.Log("Loading from " + file.Path);
-                            //txt.text = "Loading from " + file.Path;
-                            loadFolderName = Path.GetDirectoryName(file.Path);
-                            loadFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
-                            load = true;
-                        }
-                        else
-                        {
-                            // The picker was dismissed with no selected file
-                            Debug.Log("File picker operation cancelled");
-                            txt.text = "File picker operation cancelled";
-                        }
-        
-                    }, true);
-                    
-                }, true);
-#else
-                Debug.Log("Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj"));
-                txt.text = "Loading from " + Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ".obj");
-                load = true;
-#endif
+                OpenStreamForLoad();
                 break;
 
             case "ToolbarManipulate":
@@ -517,4 +409,95 @@ public class ButtonReceiver : InteractionReceiver
         }
     }
 
+    /// <summary>
+    /// Opens a file for loading and sets the load flag for the next frame.
+    /// </summary>
+    private void OpenStreamForLoad()
+    {
+        loadFileDisplayName = defaultMeshFileName;
+
+#if !UNITY_EDITOR && UNITY_WSA
+        UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
+        {
+            FileOpenPicker openPicker = new FileOpenPicker();
+            openPicker.ViewMode = PickerViewMode.Thumbnail;
+            openPicker.SuggestedStartLocation = PickerLocationId.Objects3D;
+            openPicker.FileTypeFilter.Add(ObjSaver.fileExtension);
+
+            StorageFile file = await openPicker.PickSingleFileAsync();
+            IRandomAccessStreamWithContentType randomAccessStream = await file.OpenReadAsync();
+            loadStream = randomAccessStream.AsStreamForRead();
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            {
+                if (file != null)
+                {
+                    // Application now has read/write access to the picked file
+                    Debug.Log("Loading from " + file.Path);
+                    loadFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
+                    load = true;
+                }
+                else
+                {
+                    // The picker was dismissed with no selected file
+                    Debug.Log("File picker operation cancelled");
+                    txt.text = "File picker operation cancelled";
+                }
+
+            }, true);
+
+        }, true);
+#else
+        string path = Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ObjSaver.fileExtension);
+        loadStream = new FileStream(path, FileMode.Open, FileAccess.Read);
+        Debug.Log("Loading from " + path);
+        load = true;
+#endif
+    }
+
+    /// <summary>
+    /// Opens a file for saving and sets the save flag for the next frame.
+    /// </summary>
+    private void OpenStreamForSave()
+    {
+        saveFileDisplayName = defaultMeshFileName;
+
+#if !UNITY_EDITOR && UNITY_WSA
+        UnityEngine.WSA.Application.InvokeOnUIThread(async () =>
+        {
+            FileSavePicker savePicker = new FileSavePicker();
+            savePicker.SuggestedStartLocation = PickerLocationId.Objects3D;
+            savePicker.FileTypeChoices.Add("Wavefront OBJ", new List<string>() { ObjSaver.fileExtension });
+            savePicker.SuggestedFileName = "SpatialMappingMesh";
+
+            StorageFile file = await savePicker.PickSaveFileAsync();
+            IRandomAccessStream randomAccessStream = await file.OpenAsync(FileAccessMode.ReadWrite);
+            saveStream = randomAccessStream.AsStreamForWrite();
+            UnityEngine.WSA.Application.InvokeOnAppThread(() =>
+            {
+                if (file != null)
+                {
+                    // Application now has read/write access to the picked file
+                    Debug.Log("Saving to " + file.Path);
+                    saveFileDisplayName = Path.GetFileNameWithoutExtension(file.Path);
+                    save = true;
+                    spatialMappingObject.SetActive(true);
+                }
+                else
+                {
+                    // The picker was dismissed with no selected file
+                    Debug.Log("File picker operation cancelled");
+                    txt.text = "File picker operation cancelled";
+                }
+
+            }, true);
+
+        }, true);
+#else
+        string path = Path.Combine(ObjSaver.MeshFolderName, defaultMeshFileName + ObjSaver.fileExtension);
+        saveStream = new FileStream(path, FileMode.Create, FileAccess.Write);
+        Debug.Log("Saving to " + path);
+        save = true;
+        spatialMappingObject.SetActive(true);
+#endif
+    }
 }

@@ -1,12 +1,9 @@
 ﻿using UnityEngine;
-using System.IO;
 
 public class RenderDepthDifference : MonoBehaviour
 {
- //   [Range(0f, 1f)]
- //   public float depthLevel = 0.5f;
     [Range(0f, 1f)]
-    public float depthDifferenceThreshold = 0.01f; // Threshold on the difference due to sensor imprecision
+    public float depthDifferenceThreshold = 0.005f; // Threshold on the difference due to sensor imprecision
     [Range(0f, 1f)]
     public float spatialMappingIntensity = 1f;    // Intensity in color of the texture of the spatial mapping
     public Camera referenceCamera;              // Pre-loaded model

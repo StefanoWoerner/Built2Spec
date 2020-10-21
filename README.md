@@ -1,8 +1,8 @@
 # Built2Spec HoloLens App
 
-The Built2Spec HoloLens App allows to compare the same scene in different states and highlight differences.
-
-[//]: # (TODO better description: ask Martin if he has a good project description)
+The ERC Horizon 2020 Built2Spec project sought to reduce the gap between a building’s designed and as-built energy performance.
+The Built2Spec HoloLens App allows to compare the actual surroundings and with reference and shows the differences.
+This, for instance, enables to inspect the construction progress of a building with respect to a CAD model.
 
 ## Short user documentation
 
